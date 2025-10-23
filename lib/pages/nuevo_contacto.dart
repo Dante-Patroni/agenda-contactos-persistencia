@@ -18,7 +18,9 @@ class _Nuevo_ContactoState extends State<Nuevo_Contacto> {
   String? _sexoSeleccionado; // 'M' para masculino, 'F' para femenino
 
   // Controladores para los campos de texto
-  final TextEditingController _nombreCtrl = TextEditingController();//obtengo el texto ingresado
+  final TextEditingController _idCrl = TextEditingController();
+  final TextEditingController _nombreCtrl =
+      TextEditingController(); //obtengo el texto ingresado
   final TextEditingController _apellidoCtrl = TextEditingController();
   final TextEditingController _telefonoCtrl = TextEditingController();
   final TextEditingController _domicilioCtrl = TextEditingController();
@@ -34,6 +36,7 @@ class _Nuevo_ContactoState extends State<Nuevo_Contacto> {
 
     // Si estamos editando, llenamos los campos con los datos existentes
     if (_esEdicion) {
+      _idCrl.text = widget.contactoEditar!.id.toString();
       _nombreCtrl.text = widget.contactoEditar!.nombre;
       _apellidoCtrl.text = widget.contactoEditar!.apellido;
       _telefonoCtrl.text = widget.contactoEditar!.telefono;
@@ -49,6 +52,7 @@ class _Nuevo_ContactoState extends State<Nuevo_Contacto> {
   @override
   //Limpieza de memoria cuando se cierra la pantalla
   void dispose() {
+    _idCrl.dispose();
     _nombreCtrl.dispose();
     _apellidoCtrl.dispose();
     _telefonoCtrl.dispose();
@@ -70,11 +74,13 @@ class _Nuevo_ContactoState extends State<Nuevo_Contacto> {
             backgroundColor: Colors.transparent,
             elevation: 0,
             leading: IconButton(
-              icon: Icon(Icons.arrow_back, color: Colors.white),
+              icon: const Icon(Icons.close, color: Colors.white),
               onPressed: () {
+                // Vuelve al listado de contactos sin guardar
                 Navigator.pop(context);
               },
             ),
+
             // Título dinámico
             title: Text(
               _esEdicion ? "Editar Contacto" : "Nuevo Contacto",
@@ -88,8 +94,9 @@ class _Nuevo_ContactoState extends State<Nuevo_Contacto> {
             actions: [
               IconButton(
                 icon: Icon(Icons.check, color: Colors.white),
-                onPressed: () {
-                  // Validación básica, antes de guardar valido que no estén vacíos
+
+                onPressed: () async {
+                  // Validación básica
                   if (_nombreCtrl.text.isEmpty || _apellidoCtrl.text.isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
@@ -98,8 +105,9 @@ class _Nuevo_ContactoState extends State<Nuevo_Contacto> {
                     );
                     return;
                   }
-                  // Crear o actualizar el contacto
+
                   final contactoActualizado = Contacto(
+                    id: _esEdicion ? widget.contactoEditar!.id : null,
                     nombre: _nombreCtrl.text,
                     apellido: _apellidoCtrl.text,
                     telefono: _telefonoCtrl.text,
@@ -107,21 +115,33 @@ class _Nuevo_ContactoState extends State<Nuevo_Contacto> {
                     email: _emailCtrl.text,
                     genero: _sexoSeleccionado ?? "M",
                   );
+                  final provider = context.read<ContactoProvider>();
 
-                  if (_esEdicion && widget.indexEditar != null) {//si es edición y tengo el índice
-                    // Modo edición - usar updateContacto
-                    context.read<ContactoProvider>().updateContacto(
-                      widget.indexEditar!,
-                      contactoActualizado,
+                  if (_esEdicion) {
+                    await provider.updateContacto(
+                      contactoActualizado.copyWith(
+                        id: widget.contactoEditar!.id,
+                      ),
                     );
                   } else {
-                    // Modo nuevo - usar addContacto
-                    context.read<ContactoProvider>().addContacto(
-                      contactoActualizado,
-                    );
+                    await provider.addContacto(contactoActualizado);
                   }
 
-                  Navigator.pop(context); // vuelve al listado
+                  // ✅ Espera a que todo termine antes de salir
+                  if (!mounted) return;
+
+                  // 🔹 Vuelve al listado general sin reiniciar rutas
+                  Navigator.pop(context);
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        _esEdicion
+                            ? "Contacto actualizado correctamente"
+                            : "Contacto agregado correctamente",
+                      ),
+                    ),
+                  );
                 },
               ),
             ],

@@ -1,84 +1,101 @@
-import "dart:collection";//para que solo se pueda leer la lista
-import "package:flutter/material.dart";
-import "package:agenda_contactos/models/contacto.dart";
+import 'dart:collection';
+import 'package:flutter/material.dart';
+import 'package:agenda_contactos/models/contacto.dart';
+import 'package:agenda_contactos/database/contacto_db_helper.dart';
 
-class ContactoProvider extends ChangeNotifier {//notifica a los widgets cuando cambian los datos
-  final List<Contacto> _contactos = []; //privado
+class ContactoProvider extends ChangeNotifier {
+  final List<Contacto> _contactos = [];
+  UnmodifiableListView<Contacto> get contactos => UnmodifiableListView(_contactos);
 
-  UnmodifiableListView<Contacto> get contactos => UnmodifiableListView(
-    _contactos,
-  ); //de solo lectura, sólo se modifica desde el provider
+  final ContactoDBHelper _dbHelper = ContactoDBHelper.instance;
+  bool isLoading = true;
 
-  Set<Contacto> contactosSeleccionados = {};
-  List<Contacto> contactosSeleccionadosList = [];
-
+  // 🚀 Se llama automáticamente al crear el provider
   ContactoProvider() {
-    generarContactos();
+    _loadContactos();
   }
 
-//*******************METODOS CRUD************************* */
+  // Carga los contactos desde SQLite
+  Future<void> _loadContactos() async {
+    isLoading = true;
+    notifyListeners();
 
-  void addContacto(Contacto contacto) {
-    _contactos.add(contacto);
-    notifyListeners();//notifica a los widgets que están escuchando
-                      //Actualiza todos los widgets que están escuchando este provider
-  }
+    try {
+      final data = await _dbHelper.getContactos();
+      _contactos
+        ..clear()
+        ..addAll(data);
+    } catch (e) {
+      debugPrint("❌ Error al cargar contactos: $e");
+    }
 
-  void removeContacto(Contacto contacto) {
-    _contactos.remove(contacto);
+    isLoading = false;
     notifyListeners();
   }
 
-  void updateContacto(int index, Contacto nuevoContacto) {
-    if (index >= 0 && index < _contactos.length) {
-      _contactos[index] = nuevoContacto;
-      notifyListeners();
+  // --- CRUD conectados con SQLite ---
+
+  Future<void> addContacto(Contacto contacto) async {
+    try {
+      await _dbHelper.insertContacto(contacto);
+      await _loadContactos();
+    } catch (e) {
+      debugPrint("❌ Error al agregar contacto: $e");
     }
   }
 
-  void generarContactos() {
-    _contactos.add(
+  Future<void> removeContacto(Contacto contacto) async {
+    if (contacto.id == null) return;
+    try {
+      await _dbHelper.deleteContacto(contacto.id!);
+      _contactos.removeWhere((c) => c.id == contacto.id);
+      notifyListeners();
+    } catch (e) {
+      debugPrint("❌ Error al eliminar contacto: $e");
+    }
+  }
+
+  Future<void> updateContacto(Contacto contacto) async {
+    try {
+      await _dbHelper.updateContacto(contacto);
+
+      // 🔹 Actualiza solo el contacto modificado sin recargar toda la lista
+      final index = _contactos.indexWhere((c) => c.id == contacto.id);
+      if (index != -1) {
+        _contactos[index] = contacto;
+        notifyListeners();
+      } else {
+        await _loadContactos();
+      }
+    } catch (e) {
+      debugPrint("❌ Error al actualizar contacto: $e");
+    }
+  }
+
+  // --- Generar contactos demo (para pruebas) ---
+  Future<void> generarContactosDemo() async {
+    final contactosDemo = [
       Contacto(
         nombre: "Juan",
-        apellido: "Perez",
+        apellido: "Pérez",
         telefono: "123456",
         email: "juanperez@gmail.com",
-        direccion: "Aaaa 123",
+        direccion: "Avenida Siempre Viva 123",
         genero: "M",
       ),
-    );
-
-    _contactos.add(
       Contacto(
         nombre: "María",
         apellido: "González",
         telefono: "234567",
         email: "mariagonzalez@gmail.com",
-        direccion: "Bbbb 456",
+        direccion: "Calle Falsa 456",
         genero: "F",
       ),
-    );
+    ];
 
-    _contactos.add(
-      Contacto(
-        nombre: "Carlos",
-        apellido: "Rodríguez",
-        telefono: "345678",
-        email: "carlosrodriguez@gmail.com",
-        direccion: "Cccc 789",
-        genero: "M",
-      ),
-    );
-
-    _contactos.add(
-      Contacto(
-        nombre: "Ana",
-        apellido: "López",
-        telefono: "456789",
-        email: "analopez@gmail.com",
-        direccion: "Dddd 101",
-        genero: "F",
-      ),
-    );
+    for (var c in contactosDemo) {
+      await _dbHelper.insertContacto(c);
+    }
+    await _loadContactos();
   }
 }

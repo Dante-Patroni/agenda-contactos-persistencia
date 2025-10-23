@@ -1,77 +1,62 @@
+// pages/inicio.dart
 import 'package:flutter/material.dart';
-import 'package:agenda_contactos/pages/login.dart';
+import 'package:provider/provider.dart';
+import 'package:agenda_contactos/providers/login_provider.dart';
+import 'package:agenda_contactos/pages/listado_contactos.dart';
 
-class Inicio extends StatefulWidget {
+class Inicio extends StatelessWidget {
   const Inicio({super.key});
 
   @override
-  State<Inicio> createState() => _InicioState();
-}
-
-class _InicioState extends State<Inicio> {
-  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        height: MediaQuery.of(context).size.height,
-        width: MediaQuery.of(context).size.width,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Color(0xffdb8d2e),
-              Color.fromARGB(255, 7, 59, 105), // azul opaco
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Image.asset(
-              "assets/images/logo_dev.png",
-              height: 200,
-              fit: BoxFit.cover,
-            ),
-            SizedBox(height: 20.0),
-            Text(
-              "Bienvenido!!!",
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 30.0,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            SizedBox(height: 40.0),
-            GestureDetector(
-              onTap: () {
-                // acá irías a otra pantalla
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const Login()),
-                );
-              },
-              child: Container(
-                padding: EdgeInsets.only(top: 8.0, bottom: 8.0),
-                margin: EdgeInsets.only(left: 30.0, right: 30.0),
-                width: MediaQuery.of(context).size.width,
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.white60, width: 2.0),
-                  borderRadius: BorderRadius.circular(30.0),
-                ),
+    final loginProvider = Provider.of<LoginProvider>(context, listen: false);
 
-                child: Center(
-                  child: Text(
-                    "INGRESAR",
-                    style: TextStyle(color: Colors.white, fontSize: 24.0),
-                  ),
+    return Scaffold(
+      appBar: AppBar(
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: "Cerrar sesión",
+            onPressed: () async {
+              final confirmar = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text("Cerrar sesión"),
+                  content: const Text("¿Deseas salir de la aplicación?"),
+                  actions: [
+                    TextButton(
+                      child: const Text("Cancelar"),
+                      onPressed: () => Navigator.pop(context, false),
+                    ),
+                    TextButton(
+                      child: const Text("Salir"),
+                      onPressed: () => Navigator.pop(context, true),
+                    ),
+                  ],
                 ),
-              ),
-            ),
-            SizedBox(height: 40.0),
-          ],
-        ),
+              );
+
+              if (confirmar == true && context.mounted)  {
+                Navigator.of(context, rootNavigator: true).pop();
+                await loginProvider.logout();
+                if (context.mounted) {
+                  Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+                  Future.delayed(const Duration(milliseconds: 300), () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Sesión cerrada correctamente"),
+                        backgroundColor: Colors.green,
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  });
+                }
+              }
+            },
+          ),
+        ],
       ),
+      body: const ListadoContactos(),
     );
   }
 }

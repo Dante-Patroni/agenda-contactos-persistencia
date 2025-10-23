@@ -1,16 +1,19 @@
-# login
+# 📱 Agenda de Contactos (Flutter)
 
-A new Flutter project.
+Aplicación móvil desarrollada en **Flutter** que permite gestionar una agenda de contactos con **persistencia de datos local** mediante **SQLite** y gestión de estado con **Provider**.
 
-## Getting Started
+---
 
-This project is a starting point for a Flutter application.
+## 🚀 Características principales
 
-A few resources to get you started if this is your first Flutter project:
+- ✅ **Login persistente** con `SharedPreferences`.
+- 📇 **CRUD completo de contactos** (crear, leer, editar y eliminar).
+- 💾 **Persistencia de datos local** con `SQLite`.
+- 🎨 **Diseño moderno** con degradados y estilo consistente.
+- 🔍 **Búsqueda dinámica** de contactos.
+- 📤 **Logout con confirmación** y limpieza de sesión.
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+---
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## 🧩 Arquitectura del proyecto
+
