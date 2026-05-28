@@ -2,37 +2,49 @@ import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:agenda_contactos/models/contacto.dart';
 
+/// Helper de acceso a datos para `Contacto` usando SQLite.
+///
+/// Responsabilidades:
+/// - Administrar la conexión a la base (lifecycle).
+/// - Crear y versionar el esquema.
+/// - Exponer operaciones CRUD tipadas a `Contacto`.
+///
+/// Patrón: Singleton para compartir la misma instancia/DB en toda la app.
 class ContactoDBHelper {
   // --- Patrón Singleton ---
   ContactoDBHelper._internal();
   static final ContactoDBHelper instance = ContactoDBHelper._internal();
 
-  static Database? _db;
-  static const String _dbName = 'contactos.db';
+  static Database? _db;//conexión guardada en memoria
+  static const String _dbName = 'contactos.db';//nombre del archivo SQLite
   static const int _dbVersion = 1;
-  static const String _tableName = 'contactos';
+  static const String _tableName = 'contactos';/*/ nombre de la tabla principal */
 
   // --- Obtener la base de datos ---
-  Future<Database> get database async {
-    if (_db != null) return _db!;
-    _db = await _initDB();
+  /// Retorna la instancia de base de datos, inicializándola si es necesario.
+  Future<Database> get database async {//la llama automáticamente
+    if (_db != null) return _db!;//Si está creada uso esta
+    _db = await _initDB();//Sino la creo
     return _db!;
   }
 
   // --- Inicializar la base ---
+  /// Abre/crea la base en el path por defecto de la app.
   Future<Database> _initDB() async {
-    final path = join(await getDatabasesPath(), _dbName);
+    final path = join(await getDatabasesPath(), _dbName);//obtengo el path completo
     return await openDatabase(
       path,
       version: _dbVersion,
-      onCreate: _createSchema,
+      onCreate: _createSchema,//Si no existe la creo
       onUpgrade: (db, oldVersion, newVersion) async {
-        // futuro: migraciones o cambios de esquema
+        // Lugar para migraciones controladas de esquema (ALTER TABLE, índices, etc.).
       },
     );
   }
 
   // --- Crear las tablas ---
+  /// Crea el esquema inicial de la tabla e índices auxiliares.
+  /// Los campos coinciden con las propiedades del modelo `Contacto`.
   Future<void> _createSchema(Database db, int _) async {
     await db.execute('''
       CREATE TABLE $_tableName (
@@ -53,16 +65,18 @@ class ContactoDBHelper {
   // --- CRUD ---
 
   // INSERT
+  /// Inserta un contacto y retorna el id autogenerado.
   Future<int> insertContacto(Contacto contacto) async {
-    final db = await database;
-    return await db.insert(
+    final db = await database;//Obtengo la base de datos
+    return await db.insert(//Queda gardado en forma
       _tableName,
-      contacto.toMap,
-      conflictAlgorithm: ConflictAlgorithm.abort,
+      contacto.toMap,//Convierto a Map
+      conflictAlgorithm: ConflictAlgorithm.abort,//No sobrescribir en conflicto
     );
   }
 
   // SELECT con filtro opcional
+  /// Obtiene contactos, con filtro opcional por nombre/apellido y orden configurable.
   Future<List<Contacto>> getContactos({String? search, String orderBy = 'apellido ASC'}) async {
   final db = await database;
   
@@ -83,6 +97,7 @@ class ContactoDBHelper {
 }
 
   // GET BY ID
+  /// Retorna un `Contacto` por id o `null` si no existe.
   Future<Contacto?> getContactoById(int id) async {
     final db = await database;
     final rows = await db.query(
@@ -95,6 +110,7 @@ class ContactoDBHelper {
   }
 
   // UPDATE
+  /// Actualiza un contacto existente (por `id`). Retorna filas afectadas.
   Future<int> updateContacto(Contacto contacto) async {
     final db = await database;
     return await db.update(
@@ -107,6 +123,7 @@ class ContactoDBHelper {
   }
 
   // DELETE
+  /// Elimina un contacto por `id`. Retorna filas afectadas.
   Future<int> deleteContacto(int id) async {
     final db = await database;
     return await db.delete(
@@ -117,6 +134,7 @@ class ContactoDBHelper {
   }
 
   // DELETE ALL
+  /// Elimina todos los contactos. Útil para escenarios de pruebas/demo.
   Future<void> deleteAllContactos() async {
     final db = await database;
     await db.delete(_tableName);

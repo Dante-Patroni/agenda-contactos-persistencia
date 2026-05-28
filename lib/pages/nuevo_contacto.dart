@@ -1,12 +1,11 @@
 import "package:flutter/material.dart";
-import "package:agenda_contactos/pages/listado_contactos.dart";
+import 'package:agenda_contactos/models/contacto.dart';
 import 'package:provider/provider.dart';
 import 'package:agenda_contactos/providers/contacto_provider.dart';
-import 'package:agenda_contactos/models/contacto.dart';
 
 class Nuevo_Contacto extends StatefulWidget {
-  final Contacto? contactoEditar; //Null si es nuevo, con datos si es edición
-  final int? indexEditar;
+  final Contacto? contactoEditar;  // null si es nuevo, datos si es edición
+  final int? indexEditar;//indice del contacto a editar o null si es nuevo
 
   const Nuevo_Contacto({super.key, this.contactoEditar, this.indexEditar});
 
@@ -15,27 +14,39 @@ class Nuevo_Contacto extends StatefulWidget {
 }
 
 class _Nuevo_ContactoState extends State<Nuevo_Contacto> {
-  String? _sexoSeleccionado; // 'M' para masculino, 'F' para femenino
 
-  // Controladores para los campos de texto
+  // ============================================================
+  // CONTROLADORES DE TEXTO (almacenan lo que el usuario escribe)
+  // ============================================================
   final TextEditingController _idCrl = TextEditingController();
-  final TextEditingController _nombreCtrl =
-      TextEditingController(); //obtengo el texto ingresado
+  final TextEditingController _nombreCtrl = TextEditingController();
   final TextEditingController _apellidoCtrl = TextEditingController();
   final TextEditingController _telefonoCtrl = TextEditingController();
   final TextEditingController _domicilioCtrl = TextEditingController();
   final TextEditingController _emailCtrl = TextEditingController();
 
-  // Variable para saber si estamos editando
+  // ============================================================
+  // GÉNERO SELECCIONADO ('M' o 'F')
+  // ============================================================
+  String? _sexoSeleccionado;
+
+  // ============================================================
+  // INDICA SI ESTAMOS EDITANDO O CREANDO NUEVO
+  // ============================================================
   bool get _esEdicion => widget.contactoEditar != null;
 
+  // ============================================================
+  // CICLO DE VIDA: INITSTATE
+  // Se ejecuta 1 sola vez al abrir la pantalla.
+  // Si es edición → precarga los datos en los TextFields.
+  // Si es un contacto nuevo → inicializa valores por defecto.
+  // ============================================================
   @override
-  // Inicializamos los controladores si estamos en modo edición
-  void initState() {
+  void initState() {//Se ejecuta 1 sola vez al abrir la pantalla.
     super.initState();
 
-    // Si estamos editando, llenamos los campos con los datos existentes
     if (_esEdicion) {
+      // Precargo los datos en los campos
       _idCrl.text = widget.contactoEditar!.id.toString();
       _nombreCtrl.text = widget.contactoEditar!.nombre;
       _apellidoCtrl.text = widget.contactoEditar!.apellido;
@@ -44,13 +55,16 @@ class _Nuevo_ContactoState extends State<Nuevo_Contacto> {
       _emailCtrl.text = widget.contactoEditar!.email;
       _sexoSeleccionado = widget.contactoEditar!.genero;
     } else {
-      // Si es nuevo, valor por defecto para género
+      // Valor por defecto para nuevos contactos
       _sexoSeleccionado = 'M';
     }
   }
 
+  // ============================================================
+  // CICLO DE VIDA: DISPOSE
+  // Limpia la memoria cuando la pantalla se cierra.
+  // ============================================================
   @override
-  //Limpieza de memoria cuando se cierra la pantalla
   void dispose() {
     _idCrl.dispose();
     _nombreCtrl.dispose();
@@ -61,11 +75,17 @@ class _Nuevo_ContactoState extends State<Nuevo_Contacto> {
     super.dispose();
   }
 
+  // ============================================================
+  // BUILD → DIBUJA TODA LA PANTALLA
+  // ============================================================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       extendBodyBehindAppBar: true,
-      //AppBar dinámico, cambia título y acciones según modo
+
+      // ============================================================
+      // APPBAR (Botón cerrar, título dinámico, botón guardar)
+      // ============================================================
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(120.0),
         child: Container(
@@ -73,39 +93,43 @@ class _Nuevo_ContactoState extends State<Nuevo_Contacto> {
           child: AppBar(
             backgroundColor: Colors.transparent,
             elevation: 0,
+
+            // BOTÓN DE CERRAR (volver al listado)
             leading: IconButton(
               icon: const Icon(Icons.close, color: Colors.white),
-              onPressed: () {
-                // Vuelve al listado de contactos sin guardar
-                Navigator.pop(context);
-              },
+              onPressed: () => Navigator.pop(context),
             ),
 
-            // Título dinámico
+            // TÍTULO según estamos editando o agregando
             title: Text(
               _esEdicion ? "Editar Contacto" : "Nuevo Contacto",
-              style: TextStyle(
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 25.0,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            centerTitle: false,
+
+            // BOTÓN GUARDAR (check)
             actions: [
               IconButton(
-                icon: Icon(Icons.check, color: Colors.white),
-
+                icon: const Icon(Icons.check, color: Colors.white),
                 onPressed: () async {
-                  // Validación básica
-                  if (_nombreCtrl.text.isEmpty || _apellidoCtrl.text.isEmpty) {
+                  // ================================================
+                  // VALIDACIÓN
+                  // ================================================
+                  if (_nombreCtrl.text.isEmpty ||
+                      _apellidoCtrl.text.isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text("Nombre y Apellido son obligatorios"),
-                      ),
+                          content: Text("Nombre y Apellido son obligatorios")),
                     );
                     return;
                   }
 
+                  // ================================================
+                  // CREO EL OBJETO CONTACTO (nuevo o editado)
+                  // ================================================
                   final contactoActualizado = Contacto(
                     id: _esEdicion ? widget.contactoEditar!.id : null,
                     nombre: _nombreCtrl.text,
@@ -115,8 +139,12 @@ class _Nuevo_ContactoState extends State<Nuevo_Contacto> {
                     email: _emailCtrl.text,
                     genero: _sexoSeleccionado ?? "M",
                   );
+
                   final provider = context.read<ContactoProvider>();
 
+                  // ================================================
+                  // GUARDADO (update o insert)
+                  // ================================================
                   if (_esEdicion) {
                     await provider.updateContacto(
                       contactoActualizado.copyWith(
@@ -127,12 +155,13 @@ class _Nuevo_ContactoState extends State<Nuevo_Contacto> {
                     await provider.addContacto(contactoActualizado);
                   }
 
-                  // ✅ Espera a que todo termine antes de salir
+                  // ================================================
+                  // VUELVE AL LISTADO
+                  // ================================================
                   if (!mounted) return;
-
-                  // 🔹 Vuelve al listado general sin reiniciar rutas
                   Navigator.pop(context);
 
+                  // Mensaje
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
@@ -148,139 +177,122 @@ class _Nuevo_ContactoState extends State<Nuevo_Contacto> {
           ),
         ),
       ),
+
+      // ============================================================
+      // BODY → FORMULARIO COMPLETO
+      // ============================================================
       body: Container(
-        padding: EdgeInsets.only(top: 90.0),
-        height: MediaQuery.of(context).size.height,
-        width: MediaQuery.of(context).size.width,
+        padding: const EdgeInsets.only(top: 90.0),
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              Color(0xffdb8d2e),
-              Color.fromARGB(255, 7, 59, 105), // azul opaco
-            ],
+            colors: [Color(0xffdb8d2e), Color.fromARGB(255, 7, 59, 105)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
         ),
+
         child: Column(
           children: [
             Expanded(
               child: Container(
-                padding: EdgeInsets.only(top: 50.0, left: 30.0, right: 30.0),
-                width: MediaQuery.of(context).size.width,
-                decoration: BoxDecoration(
+                padding:
+                    const EdgeInsets.only(top: 50.0, left: 30.0, right: 30.0),
+                decoration: const BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.only(
                     topLeft: Radius.circular(30),
                     topRight: Radius.circular(30),
                   ),
                 ),
+
+                // FORMULARIO SCROLLEABLE
                 child: SingleChildScrollView(
-                  // ← Agregado para scroll
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+
                     children: [
-                      Text(
-                        "Nombre",
-                        style: TextStyle(
-                          color: Color(0xff661c3a),
-                          fontSize: 24.0,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+
+                      // ====================================================
+                      // CAMPO NOMBRE
+                      // ====================================================
+                      _buildLabel("Nombre"),
                       TextField(
                         controller: _nombreCtrl,
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           hintText: "Ingrese nombre",
                           prefixIcon: Icon(Icons.person_outline),
                         ),
                       ),
-                      SizedBox(height: 20.0),
-                      Text(
-                        "Apellido",
-                        style: TextStyle(
-                          color: Color(0xff661c3a),
-                          fontSize: 24.0,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      const SizedBox(height: 20),
+
+                      // ====================================================
+                      // CAMPO APELLIDO
+                      // ====================================================
+                      _buildLabel("Apellido"),
                       TextField(
                         controller: _apellidoCtrl,
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           hintText: "Ingrese apellido",
                           prefixIcon: Icon(Icons.person_outline),
                         ),
                       ),
-                      SizedBox(height: 20.0),
-                      Text(
-                        "Teléfono",
-                        style: TextStyle(
-                          color: Color(0xff661c3a),
-                          fontSize: 24.0,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      const SizedBox(height: 20),
+
+                      // ====================================================
+                      // CAMPO TELEFONO
+                      // ====================================================
+                      _buildLabel("Teléfono"),
                       TextField(
                         controller: _telefonoCtrl,
-                        decoration: InputDecoration(
+                        keyboardType: TextInputType.phone,
+                        decoration: const InputDecoration(
                           hintText: "Ingrese teléfono",
                           prefixIcon: Icon(Icons.phone_android_outlined),
                         ),
-                        keyboardType: TextInputType.phone,
                       ),
-                      SizedBox(height: 20.0),
-                      Text(
-                        "Domicilio",
-                        style: TextStyle(
-                          color: Color(0xff661c3a),
-                          fontSize: 24.0,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      const SizedBox(height: 20),
+
+                      // ====================================================
+                      // CAMPO DOMICILIO
+                      // ====================================================
+                      _buildLabel("Domicilio"),
                       TextField(
                         controller: _domicilioCtrl,
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           hintText: "Ingrese domicilio",
                           prefixIcon: Icon(Icons.location_on_outlined),
                         ),
                       ),
-                      SizedBox(height: 20.0),
-                      Text(
-                        "Email",
-                        style: TextStyle(
-                          color: Color(0xff661c3a),
-                          fontSize: 24.0,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      const SizedBox(height: 20),
+
+                      // ====================================================
+                      // CAMPO EMAIL
+                      // ====================================================
+                      _buildLabel("Email"),
                       TextField(
                         controller: _emailCtrl,
-                        decoration: InputDecoration(
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: const InputDecoration(
                           hintText: "Ingrese su email",
                           prefixIcon: Icon(Icons.email_outlined),
                         ),
-                        keyboardType: TextInputType.emailAddress,
                       ),
-                      SizedBox(height: 20.0),
-                      Text(
-                        "Género",
-                        style: TextStyle(
-                          color: Color(0xff661c3a),
-                          fontSize: 24.0,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      SizedBox(height: 10.0),
-                      //Radio Buttons
+                      const SizedBox(height: 20),
+
+                      // ====================================================
+                      // SEXO (RADIOS)
+                      // ====================================================
+                      _buildLabel("Género"),
+                      const SizedBox(height: 10),
+
                       Container(
-                        // ← Contenedor para mejorar la apariencia
-                        padding: EdgeInsets.symmetric(horizontal: 10.0),
+                        padding: const EdgeInsets.symmetric(horizontal: 10.0),
                         decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade300),
+                          border:
+                              Border.all(color: Colors.grey.shade300),
                           borderRadius: BorderRadius.circular(8.0),
                         ),
                         child: Row(
-                          mainAxisAlignment: MainAxisAlignment.start,
                           children: [
                             Expanded(
                               child: ListTile(
@@ -289,12 +301,10 @@ class _Nuevo_ContactoState extends State<Nuevo_Contacto> {
                                   value: 'M',
                                   groupValue: _sexoSeleccionado,
                                   onChanged: (value) {
-                                    setState(() {
-                                      _sexoSeleccionado = value;
-                                    });
+                                    setState(() => _sexoSeleccionado = value);
                                   },
                                 ),
-                                title: Text("Masculino"),
+                                title: const Text("Masculino"),
                               ),
                             ),
                             Expanded(
@@ -304,18 +314,17 @@ class _Nuevo_ContactoState extends State<Nuevo_Contacto> {
                                   value: 'F',
                                   groupValue: _sexoSeleccionado,
                                   onChanged: (value) {
-                                    setState(() {
-                                      _sexoSeleccionado = value;
-                                    });
+                                    setState(() => _sexoSeleccionado = value);
                                   },
                                 ),
-                                title: Text("Femenino"),
+                                title: const Text("Femenino"),
                               ),
                             ),
                           ],
                         ),
                       ),
-                      SizedBox(height: 30.0), // ← Espacio final
+
+                      const SizedBox(height: 30),
                     ],
                   ),
                 ),
@@ -323,6 +332,20 @@ class _Nuevo_ContactoState extends State<Nuevo_Contacto> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // PEQUEÑO WIDGET AUXILIAR PARA TÍTULOS DE FORMULARIO
+  // ============================================================
+  Widget _buildLabel(String text) {
+    return Text(
+      text,
+      style: const TextStyle(
+        color: Color(0xff661c3a),
+        fontSize: 24.0,
+        fontWeight: FontWeight.bold,
       ),
     );
   }

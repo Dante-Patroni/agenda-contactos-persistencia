@@ -9,6 +9,10 @@ import 'package:agenda_contactos/providers/login_provider.dart';
 class Login extends StatefulWidget {
   const Login({super.key});
 
+  /// Pantalla de autenticación.
+  ///
+  /// - Valida entradas y consume `LoginProvider`.
+  /// - En éxito redirige al listado de contactos.
   @override
   State<Login> createState() => _LoginState();
 }
@@ -19,6 +23,7 @@ class _LoginState extends State<Login> {
   bool _isLoading = false;
 
   //Función para validar el login
+  /// Orquesta validación de campos, invoca `login()` y maneja navegación/errores.
   void _login() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
@@ -37,13 +42,13 @@ class _LoginState extends State<Login> {
       _isLoading = true;
     });
 
-    try {
+    try {//envia los datos al provider
       final loginProvider = Provider.of<LoginProvider>(context, listen: false);
       final success = await loginProvider.login(email, password);
 
-      if (success && context.mounted) {
+      if (success && context.mounted) {//Si el login fue exitoso voya al listado de contactos
         Navigator.pushReplacementNamed(context, '/listado_contactos');
-      } else {
+      } else {//Si hubo un error muestro un snackbar con el mensaje
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(loginProvider.errorMessage),
@@ -61,7 +66,7 @@ class _LoginState extends State<Login> {
       });
     }
   }
-
+/// Construye la pantalla de login
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -110,6 +115,7 @@ class _LoginState extends State<Login> {
   }
 
   //Metodo para construir el formulario de login
+  /// Contenedor con campos de email/contraseña y CTA de inicio de sesión.
   Widget _buildLoginForm() {
     return Expanded(
       child: Container(
@@ -119,6 +125,8 @@ class _LoginState extends State<Login> {
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
         ),
+
+        // Formulario
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -127,7 +135,7 @@ class _LoginState extends State<Login> {
                 "Email",
                 style: TextStyle(color: Color(0xff661c3a), fontSize: 24),
               ),
-              TextField(
+              TextField(//Capturo el email
                 controller: _emailController,
                 decoration: const InputDecoration(
                   hintText: "Ingrese su email",
@@ -140,7 +148,7 @@ class _LoginState extends State<Login> {
                 "Contraseña",
                 style: TextStyle(color: Color(0xff661c3a), fontSize: 24),
               ),
-              TextField(
+              TextField(//Capturo la contraseña
                 controller: _passwordController,
                 obscureText: true,
                 decoration: const InputDecoration(

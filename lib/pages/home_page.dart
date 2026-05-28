@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
+  /// Pantalla inicial de bienvenida (no autenticada).
+  ///
+  /// Permite navegar al flujo de login y no mantiene estado.
   @override
   Widget build(BuildContext context) {
     return Scaffold(

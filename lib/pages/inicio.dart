@@ -7,6 +7,11 @@ import 'package:agenda_contactos/pages/listado_contactos.dart';
 class Inicio extends StatelessWidget {
   const Inicio({super.key});
 
+  /// Variante de pantalla contenedora que muestra `ListadoContactos`
+  /// con acción de logout en el `AppBar`.
+  ///
+  /// Nota: funcionalmente solapa con `HomePage`; mantener solo una
+  /// pantalla de bienvenida mejoraría la coherencia de navegación.
   @override
   Widget build(BuildContext context) {
     final loginProvider = Provider.of<LoginProvider>(context, listen: false);

@@ -8,15 +8,30 @@ import 'package:agenda_contactos/pages/nuevo_contacto.dart';
 class ListadoContactos extends StatefulWidget {
   const ListadoContactos({super.key});
 
+  /// Esta pantalla representa el módulo principal de la aplicación
+  /// al que solo se accede tras un inicio de sesión válido.
+  ///
+  /// Funcionalidades:
+  /// ✔ Visualizar contactos almacenados en SQLite
+  /// ✔ Buscar contactos localmente
+  /// ✔ Editar y eliminar contactos
+  /// ✔ Cerrar sesión (actualiza SharedPreferences)
   @override
   State<ListadoContactos> createState() => _ListadoContactosState();
 }
 
 class _ListadoContactosState extends State<ListadoContactos> {
+  // Estado interno para controlar si la barra de búsqueda está activa o no.
   bool _buscando = false;
+
+  // Texto ingresado en el cuadro de búsqueda.
   String _filtroBusqueda = "";
+
+  // Controlador para manejar lo que el usuario escribe en el buscador.
   final TextEditingController _controladorBusqueda = TextEditingController();
 
+  /// Activa o desactiva el modo búsqueda.
+  /// Cuando se cierra la búsqueda se limpian los filtros.
   void _showSearch() {
     setState(() {
       if (_buscando) {
@@ -27,6 +42,10 @@ class _ListadoContactosState extends State<ListadoContactos> {
     });
   }
 
+  /// Ejecuta el proceso de cierre de sesión:
+  /// - Pide confirmación mediante un AlertDialog.
+  /// - Llama al provider de login para actualizar SharedPreferences.
+  /// - Limpia la pila de rutas y vuelve a la pantalla inicial.
   Future<void> _confirmarLogout() async {
     final loginProvider = context.read<LoginProvider>();
 
@@ -36,10 +55,12 @@ class _ListadoContactosState extends State<ListadoContactos> {
         title: const Text("Cerrar sesión"),
         content: const Text("¿Estás seguro de que quieres cerrar sesión?"),
         actions: [
+          // Botón cancelar → no hace nada
           TextButton(
             child: const Text("Cancelar"),
             onPressed: () => Navigator.pop(context, false),
           ),
+          // Botón salir → confirma logout
           TextButton(
             child: const Text("Salir", style: TextStyle(color: Colors.red)),
             onPressed: () => Navigator.pop(context, true),
@@ -48,9 +69,13 @@ class _ListadoContactosState extends State<ListadoContactos> {
       ),
     );
 
+    // Si el usuario confirmó el cierre de sesión:
     if (confirmar == true && context.mounted) {
       await loginProvider.logout();
-      Navigator.of(context).pushNamedAndRemoveUntil('/home_page', (route) => false);
+
+      // Elimina cualquier ruta abierta y vuelve al Home de bienvenida.
+      Navigator.of(context)
+          .pushNamedAndRemoveUntil('/home_page', (route) => false);
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -63,30 +88,46 @@ class _ListadoContactosState extends State<ListadoContactos> {
   }
 
   @override
+  /// Construcción de toda la interfaz gráfica del listado.
+  /// Scaffold contiene:
+  /// - AppBar dinámico
+  /// - Body con gradiente
+  /// - Lista consumida desde el Provider
+  /// - FAB para agregar nuevos contactos
   Widget build(BuildContext context) {
     return Scaffold(
       extendBodyBehindAppBar: true,
+
+      // ***** APPBAR SUPERIOR *****
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(120.0),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
+
           child: AppBar(
             backgroundColor: Colors.transparent,
             elevation: 0,
+
+            // --- Título dinámico: cambia por buscador dependiendo del estado ---
             title: _buscando
                 ? TextField(
                     controller: _controladorBusqueda,
                     autofocus: true,
                     style: const TextStyle(color: Colors.white, fontSize: 18),
+
+                    // Placeholder del buscador
                     decoration: const InputDecoration(
                       hintText: "Buscar contacto...",
                       hintStyle: TextStyle(color: Colors.white70),
                       border: InputBorder.none,
                     ),
+
+                    // Actualiza el filtro conforme se escribe
                     onChanged: (value) {
                       setState(() => _filtroBusqueda = value.toLowerCase());
                     },
                   )
+
                 : const Text(
                     "Contactos",
                     style: TextStyle(
@@ -95,7 +136,10 @@ class _ListadoContactosState extends State<ListadoContactos> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
+
             centerTitle: false,
+
+            // --- Botones de acciones: buscar (toggle) y logout ---
             actions: [
               IconButton(
                 icon: Icon(
@@ -105,8 +149,11 @@ class _ListadoContactosState extends State<ListadoContactos> {
                 ),
                 onPressed: _showSearch,
               ),
+
+              // Botón de cierre de sesión
               IconButton(
-                icon: const Icon(Icons.logout, color: Colors.white, size: 26.0),
+                icon:
+                    const Icon(Icons.logout, color: Colors.white, size: 26.0),
                 tooltip: "Cerrar sesión",
                 onPressed: _confirmarLogout,
               ),
@@ -114,6 +161,8 @@ class _ListadoContactosState extends State<ListadoContactos> {
           ),
         ),
       ),
+
+      // ***** BODY PRINCIPAL *****
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -122,13 +171,20 @@ class _ListadoContactosState extends State<ListadoContactos> {
             end: Alignment.bottomRight,
           ),
         ),
+
         child: SafeArea(
           top: true,
+
+          /// Consumer escucha los cambios del ContactoProvider
           child: Consumer<ContactoProvider>(
             builder: (context, provider, child) {
+              // Loading inicial mientras se leen los contactos desde SQLite.
               if (provider.isLoading) return _buildLoadingScreen();
+
+              // Si no hay contactos, muestra pantalla vacía.
               if (provider.contactos.isEmpty) return _buildEmptyState();
 
+              // Filtro local sobre la lista obtenida del provider.
               final contactosFiltrados = provider.contactos.where((c) {
                 final nombreCompleto =
                     "${c.nombre} ${c.apellido}".toLowerCase();
@@ -143,6 +199,8 @@ class _ListadoContactosState extends State<ListadoContactos> {
                     topRight: Radius.circular(30),
                   ),
                 ),
+
+                /// ListViewBuilder → Construcción eficiente y dinámica de tarjetas
                 child: ListView.builder(
                   itemCount: contactosFiltrados.length,
                   itemBuilder: (context, index) {
@@ -154,13 +212,18 @@ class _ListadoContactosState extends State<ListadoContactos> {
                         horizontal: 10.0,
                         vertical: 6.0,
                       ),
+
+                      // Contenido de cada tarjeta
                       child: Padding(
                         padding: const EdgeInsets.all(8.0),
+
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            // --- Encabezado: avatar + datos principales ---
                             Row(
                               children: [
+                                // Avatar basado en género
                                 CircleAvatar(
                                   radius: 30,
                                   backgroundColor: contacto.genero == "M"
@@ -173,7 +236,10 @@ class _ListadoContactosState extends State<ListadoContactos> {
                                     color: Colors.white,
                                   ),
                                 ),
+
                                 const SizedBox(width: 10),
+
+                                // Datos del contacto
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment:
@@ -202,10 +268,15 @@ class _ListadoContactosState extends State<ListadoContactos> {
                                 ),
                               ],
                             ),
+
                             const SizedBox(height: 8),
+
+                            // --- Botones de acciones por contacto ---
                             Row(
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
+                                /// BOTÓN EDITAR
+                                /// Abre pantalla Nuevo_Contacto en modo edición.
                                 IconButton(
                                   icon: const Icon(
                                     Icons.edit,
@@ -220,17 +291,22 @@ class _ListadoContactosState extends State<ListadoContactos> {
                                       await Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (context) => Nuevo_Contacto(
+                                          builder: (context) =>
+                                              Nuevo_Contacto(
                                             contactoEditar: contacto,
                                             indexEditar: indexOriginal,
                                           ),
                                         ),
                                       );
-                                      // 🔹 Refresca lista después de volver
+
+                                      // Refresca la vista al volver
                                       setState(() {});
                                     }
                                   },
                                 ),
+
+                                /// BOTÓN ELIMINAR
+                                /// Llama a un diálogo de confirmación.
                                 IconButton(
                                   icon: const Icon(
                                     Icons.delete,
@@ -241,6 +317,8 @@ class _ListadoContactosState extends State<ListadoContactos> {
                                     _confirmarEliminacion(context, contacto);
                                   },
                                 ),
+
+                                /// BOTÓN LLAMAR (futuro)
                                 IconButton(
                                   icon: const Icon(
                                     Icons.phone,
@@ -248,7 +326,7 @@ class _ListadoContactosState extends State<ListadoContactos> {
                                     size: 30,
                                   ),
                                   onPressed: () {
-                                    // Implementar llamada con url_launcher
+                                    // Futuro: plugin url_launcher
                                   },
                                 ),
                               ],
@@ -264,12 +342,16 @@ class _ListadoContactosState extends State<ListadoContactos> {
           ),
         ),
       ),
+
+      // ***** BOTÓN FLOTANTE: agregar contacto *****
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(bottom: 18.0, right: 18.0),
         child: FloatingActionButton(
           onPressed: () async {
             await Navigator.pushNamed(context, '/nuevo_contacto');
-            setState(() {}); // 🔹 refresca al volver
+
+            // Actualiza vista al regresar de la creación
+            setState(() {});
           },
           backgroundColor: const Color(0xffb51837),
           foregroundColor: Colors.white,
@@ -279,7 +361,11 @@ class _ListadoContactosState extends State<ListadoContactos> {
     );
   }
 
-  // --- Widgets auxiliares ---
+  // =====================================================
+  // ============   W I D G E T S   U T I L E S ==========
+  // =====================================================
+
+  /// Pantalla mostrada mientras se cargan los contactos desde SQLite.
   Widget _buildLoadingScreen() => Container(
         decoration: const BoxDecoration(
           color: Colors.white,
@@ -295,6 +381,7 @@ class _ListadoContactosState extends State<ListadoContactos> {
         ),
       );
 
+  /// Vista mostrada cuando no existen contactos en la base.
   Widget _buildEmptyState() => Container(
         decoration: const BoxDecoration(
           color: Colors.white,
@@ -318,6 +405,10 @@ class _ListadoContactosState extends State<ListadoContactos> {
         ),
       );
 
+  /// Cuadro de diálogo para confirmar la eliminación de un contacto.
+  /// Si se confirma:
+  ///  - Elimina desde el Provider (lo que actualiza SQLite)
+  ///  - Muestra un SnackBar informativo
   void _confirmarEliminacion(BuildContext context, Contacto contacto) {
     showDialog(
       context: context,

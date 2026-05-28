@@ -1,18 +1,29 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
-// 🧩 Providers
+// Providers
 import 'package:agenda_contactos/providers/login_provider.dart';
 import 'package:agenda_contactos/providers/contacto_provider.dart';
 
-// 🧭 Páginas
+// Pages
 import 'package:agenda_contactos/pages/login.dart';
 import 'package:agenda_contactos/pages/nuevo_contacto.dart';
 import 'package:agenda_contactos/pages/listado_contactos.dart';
 import 'package:agenda_contactos/pages/home_page.dart';
 
+/// Punto de entrada principal
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // SQLite para Windows/Linux
+  if (Platform.isWindows || Platform.isLinux) {
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+  }
+
   runApp(
     MultiProvider(
       providers: [
@@ -24,6 +35,9 @@ void main() {
   );
 }
 
+/// Raíz de la aplicación.
+///
+/// Define título, rutas y la pantalla inicial a través de `AuthChecker`.
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -32,7 +46,8 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Mi Agenda',
       debugShowCheckedModeBanner: false,
-      home: const AuthChecker(), // Verifica login al inicio
+
+      home: const AuthChecker(), // VEIFICO EL LOGIN AL INICIO  
       routes: {
         '/inicio': (context) => const ListadoContactos(),
         '/home_page': (context) => const HomePage(),
@@ -44,6 +59,12 @@ class MyApp extends StatelessWidget {
   }
 }
 
+/// Determina la pantalla inicial en función del estado de autenticación.
+///
+/// Contrato:
+/// - Mientras `LoginProvider.isCheckingAuth` sea `true`, muestra un loading.
+/// - Si hay sesión activa, muestra `ListadoContactos`.
+/// - En caso contrario, navega a `Login`.
 class AuthChecker extends StatelessWidget {
   const AuthChecker({super.key});
 
@@ -62,6 +83,6 @@ class AuthChecker extends StatelessWidget {
     }
 
     // 🔸 Si no está logueado, va al login
-    return const Login();
+    return const HomePage ();
   }
 }
