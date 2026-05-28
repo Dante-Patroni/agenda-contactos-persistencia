@@ -76,11 +76,12 @@ Servicios HTTP (Dio)
   └── ApiClient (instancia única con base URL, timeouts y headers JSON)
 ```
 
-### Estrategia offline-first (ContactoProvider)
+### Estrategia offline-first y Sincronización Automática (ContactoProvider)
 
 1. **Al cargar contactos**: intenta `GET /Contactos` → si falla, lee desde SQLite.
-2. **Al crear/editar/eliminar**: intenta operación en API → si falla, opera solo en SQLite.
-3. **La UI siempre consume la lista en memoria** (`UnmodifiableListView`), que se mantiene sincronizada.
+2. **Al crear/editar/eliminar**: intenta operación en API → si falla, guarda el registro en SQLite marcado como **"Pendiente de Sincronización"** (`is_sync = 0`).
+3. **Sincronización Transparente**: Al recuperar la conexión o presionar el botón de "Refrescar", la app detecta automáticamente los contactos pendientes en SQLite y los sube a la API antes de descargar la lista actualizada, asegurando **cero pérdida de datos**.
+4. **La UI siempre consume la lista en memoria** (`UnmodifiableListView`), que se mantiene sincronizada en tiempo real.
 
 ---
 
@@ -95,3 +96,36 @@ Servicios HTTP (Dio)
 
 ## 🧩 Arquitectura del proyecto
 
+---
+
+## ⚙️ Instrucciones de Ejecución
+
+Para evaluar este proyecto correctamente, se requiere tener ejecutando el backend en ASP.NET y posteriormente inicializar esta aplicación en Flutter.
+
+### Paso 1: Configurar el Backend (ASP.NET)
+1. Asegúrese de inicializar la API REST de Contactos en su entorno local.
+2. Verifique que la API se esté ejecutando en el puerto esperado. Por defecto, esta app de Flutter apunta a `http://localhost:5148/api`. 
+3. *(Si su API usa otro puerto, deberá modificar la URL en el archivo `lib/services/api_client.dart`).*
+
+### Paso 2: Ejecutar la App (Flutter)
+1. Abra una terminal apuntando a la raíz de este proyecto (`agenda_contactos`).
+2. Instale las dependencias del proyecto ejecutando:
+   ```powershell
+   flutter pub get
+   ```
+3. Ejecute la aplicación seleccionando su plataforma de preferencia (Windows o Emulador Android):
+   ```powershell
+   # Para correr como aplicación nativa de escritorio en Windows:
+   flutter run -d windows
+   
+   # Para correr en un emulador de Android (debe estar iniciado previamente):
+   flutter run
+   ```
+
+### 💡 Prueba sugerida para la funcionalidad "Offline-First":
+1. Inicie sesión en la app y asegúrese de que la lista de contactos carga correctamente.
+2. **Apague o detenga el servidor ASP.NET** (o desconecte el internet del emulador).
+3. Cree un **nuevo contacto** desde la aplicación. Verá que se guarda localmente gracias a SQLite.
+4. **Vuelva a iniciar el servidor ASP.NET**.
+5. Presione el botón **Refrescar 🔄** en la esquina superior derecha de la app.
+6. La aplicación detectará el contacto pendiente, lo enviará silenciosamente a la base de datos central de SQL Server y refrescará la vista. ¡Cero pérdida de datos!

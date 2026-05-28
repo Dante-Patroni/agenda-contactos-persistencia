@@ -68,12 +68,12 @@ class ContactoApiService {
     return data.map((json) {
       return Contacto(
         id: json['id'],
-        nombre: json['nombre'],
-        apellido: '', // Valor por defecto si la API no provee este campo
-        telefono: json['telefono'],
-        email: json['email'],
-        direccion: '', // Valor por defecto si la API no provee este campo
-        genero: '',    // Valor por defecto si la API no provee este campo
+        nombre: json['nombre'] ?? '',
+        apellido: json['apellido'] ?? '',
+        telefono: json['telefono'] ?? '',
+        email: json['email'] ?? '',
+        direccion: json['direccion'] ?? '',
+        genero: json['genero'] ?? '',
       );
     }).toList();
   }

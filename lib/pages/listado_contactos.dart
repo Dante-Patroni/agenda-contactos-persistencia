@@ -141,6 +141,18 @@ class _ListadoContactosState extends State<ListadoContactos> {
 
             // --- Botones de acciones: buscar (toggle) y logout ---
             actions: [
+              // Botón de sincronizar/refrescar
+              IconButton(
+                icon: const Icon(Icons.refresh, color: Colors.white, size: 28.0),
+                tooltip: "Sincronizar / Refrescar",
+                onPressed: () {
+                  context.read<ContactoProvider>().refreshContactos();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Sincronizando...")),
+                  );
+                },
+              ),
+
               IconButton(
                 icon: Icon(
                   _buscando ? Icons.close : Icons.search,

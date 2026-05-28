@@ -24,6 +24,11 @@ class ContactoProvider extends ChangeNotifier {
     _loadContactos();
   }
 
+  /// Fuerza una recarga y sincronización manual desde la UI
+  Future<void> refreshContactos() async {
+    await _loadContactos();
+  }
+
  /// Carga y sincroniza la lista de contactos implementando una estrategia de caché local.
   /// 
   /// El flujo operativo prioritario intenta consumir los datos más recientes desde el 
@@ -42,6 +47,23 @@ class ContactoProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // 🔥 Sincronizar pendientes primero
+      final pendientes = await _dbHelper.getContactosPendientes();
+      for (var pendiente in pendientes) {
+        // Quitamos el ID local de SQLite para que la API asigne uno nuevo
+        final contactoParaApi = Contacto(
+          nombre: pendiente.nombre,
+          apellido: pendiente.apellido,
+          telefono: pendiente.telefono,
+          email: pendiente.email,
+          direccion: pendiente.direccion,
+          genero: pendiente.genero,
+          isSync: 1,
+        );
+        await _apiService.crearContacto(contactoParaApi);
+        debugPrint("✅ Sincronizado contacto offline: \${pendiente.nombre}");
+      }
+
       // 🔥 Intentar API: Petición HTTP al servidor remoto para obtener datos en tiempo real
       final data = await _apiService.obtenerContactos();
 
@@ -108,6 +130,7 @@ class ContactoProvider extends ChangeNotifier {
 
       // 🔥 Fallback offline: Si el servidor falla o no hay red, se prioriza la experiencia de usuario
       // persistiendo el registro localmente para una futura sincronización.
+      contacto.isSync = 0; // Marcar como pendiente de sincronización
       await _dbHelper.insertContacto(contacto);
 
       // Refresca la lista local en memoria para que el usuario visualice el contacto recién creado

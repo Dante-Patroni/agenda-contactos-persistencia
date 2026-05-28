@@ -11,6 +11,7 @@ class Contacto {
   String email;
   String direccion;
   String genero;
+  int isSync; // 0 = pendiente, 1 = sincronizado
 
   /// Crea un contacto nuevo o reconstruye uno existente.
   ///
@@ -23,6 +24,7 @@ class Contacto {
     required this.email,
     required this.direccion,
     required this.genero,
+    this.isSync = 1, // Por defecto asumimos que está sincronizado
   });
 
   /// Serializa el contacto a `Map<String, dynamic>` para SQLite.
@@ -34,6 +36,7 @@ class Contacto {
     'email': email,
     'direccion': direccion,
     'genero': genero,
+    'is_sync': isSync,
   };
 
   /// Deserializa desde un mapa (fila de SQLite) a entidad `Contacto`.
@@ -45,6 +48,7 @@ class Contacto {
     email: map['email'],
     direccion: map['direccion'],
     genero: map['genero'],
+    isSync: map['is_sync'] ?? 1,
   );
 
   /// Retorna una copia inmutable del contacto modificando los campos indicados.
@@ -56,6 +60,7 @@ class Contacto {
     String? email,
     String? direccion,
     String? genero,
+    int? isSync,
   }) => Contacto(
     id: id ?? this.id,
     nombre: nombre ?? this.nombre,
@@ -64,6 +69,7 @@ class Contacto {
     email: email ?? this.email,
     direccion: direccion ?? this.direccion,
     genero: genero ?? this.genero,
+    isSync: isSync ?? this.isSync,
   );
 
   @override

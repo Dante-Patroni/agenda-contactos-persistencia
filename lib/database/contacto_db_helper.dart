@@ -17,7 +17,7 @@ class ContactoDBHelper {
 
   static Database? _db;//conexión guardada en memoria
   static const String _dbName = 'contactos.db';//nombre del archivo SQLite
-  static const int _dbVersion = 1;
+  static const int _dbVersion = 2;
   static const String _tableName = 'contactos';/*/ nombre de la tabla principal */
 
   // --- Obtener la base de datos ---
@@ -37,7 +37,10 @@ class ContactoDBHelper {
       version: _dbVersion,
       onCreate: _createSchema,//Si no existe la creo
       onUpgrade: (db, oldVersion, newVersion) async {
-        // Lugar para migraciones controladas de esquema (ALTER TABLE, índices, etc.).
+        if (oldVersion < 2) {
+          // Migración a versión 2: añadir columna is_sync
+          await db.execute('ALTER TABLE $_tableName ADD COLUMN is_sync INTEGER DEFAULT 1;');
+        }
       },
     );
   }
@@ -54,7 +57,8 @@ class ContactoDBHelper {
         telefono TEXT NOT NULL,
         email TEXT NOT NULL,
         direccion TEXT NOT NULL,
-        genero TEXT NOT NULL
+        genero TEXT NOT NULL,
+        is_sync INTEGER DEFAULT 1
       );
     ''');
 
@@ -95,6 +99,17 @@ class ContactoDBHelper {
 
   return rows.map((m) => Contacto.fromMap(m)).toList(growable: false);
 }
+
+  // PENDIENTES DE SINCRONIZACIÓN
+  /// Retorna los contactos que fueron creados offline y no han sido sincronizados
+  Future<List<Contacto>> getContactosPendientes() async {
+    final db = await database;
+    final rows = await db.query(
+      _tableName,
+      where: 'is_sync = 0',
+    );
+    return rows.map((m) => Contacto.fromMap(m)).toList(growable: false);
+  }
 
   // GET BY ID
   /// Retorna un `Contacto` por id o `null` si no existe.

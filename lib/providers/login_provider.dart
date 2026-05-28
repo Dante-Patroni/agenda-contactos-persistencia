@@ -84,6 +84,7 @@ Future<bool> login(String email, String password) async {
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('user_email');
+    await prefs.remove('jwt_token');
     await prefs.setBool('is_logged_in', false);
 
     _isLoggedIn = false;
