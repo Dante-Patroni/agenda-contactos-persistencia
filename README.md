@@ -114,13 +114,27 @@ Para evaluar este proyecto correctamente, se requiere tener ejecutando el backen
    flutter pub get
    ```
 3. Ejecute la aplicación seleccionando su plataforma de preferencia (Windows o Emulador Android):
-   ```powershell
-   # Para correr como aplicación nativa de escritorio en Windows:
-   flutter run -d windows
-   
-   # Para correr en un emulador de Android (debe estar iniciado previamente):
-   flutter run
-   ```
+   **Notas importantes para la conexión a la API:**
+*   Asegúrate de que tu **servidor API de ASP.NET Core** esté en ejecución.
+*   En tu `Program.cs` del backend, debes tener `builder.WebHost.UseUrls("http://0.0.0.0:5148");` para permitir conexiones desde otras IPs.
+*   Si el firewall de tu PC está activo, puede que tengas que añadir una regla de entrada para permitir conexiones TCP al puerto `5148`.
+
+---
+
+### Para correr como aplicación nativa de escritorio en Windows:
+
+La aplicación Flutter se conectará automáticamente a `http://localhost:5148/api`.
+```powershell
+flutter run -d windows
+```
+
+### Para correr en un emulador o dispositivo físico de Android:
+
+La aplicación Flutter se conectará automáticamente a `http://IP e tu máquina:5148/api`.
+**¡IMPORTANTE!** Si la dirección IP de tu máquina de desarrollo cambia, deberás actualizarla en el archivo `lib/services/api_client.dart`.
+*   Asegúrate de que tu dispositivo Android (emulador o físico) y tu PC estén en la misma red Wi-Fi.
+
+```powershell
 
 ### 💡 Prueba sugerida para la funcionalidad "Offline-First":
 1. Inicie sesión en la app y asegúrese de que la lista de contactos carga correctamente.

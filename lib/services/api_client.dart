@@ -1,4 +1,6 @@
+import 'dart:io' show Platform;
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 /// Cliente HTTP centralizado para consumir la API REST ASP.NET.
 ///
@@ -13,10 +15,11 @@ class ApiClient {
   static final Dio dio = Dio(
     BaseOptions(
       // ⚠ IMPORTANTE:
-      // Android Emulator => 10.0.2.2
+      // Android Emulator => IP de la máquina host (ej. 192.168.1.100)
       // Web/Desktop       => localhost
-      baseUrl: 'http://localhost:5148/api',
-
+       baseUrl: kIsWeb || !Platform.isAndroid // Si es web O no es Android (podría ser iOS, desktop)
+          ? 'http://localhost:5148/api'
+          : 'http://192.168.0.0:5148/api', // Reemplaza con la IP de tu PC
       // 📋 Cabecera por defecto: indica que el cuerpo de todas las peticiones será JSON
       headers: {
         'Content-Type': 'application/json',
